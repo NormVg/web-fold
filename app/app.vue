@@ -1,12 +1,25 @@
 <template>
   <div class="app">
     <NuxtRouteAnnouncer />
-    <NewMemory />
+    <Timeline v-if="currentView === 'timeline'" @navigate="handleNavigate" />
+    <NewMemory v-else @navigate="handleNavigate" />
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import NewMemory from './components/NewMemory.vue'
+import Timeline from './components/Timeline.vue'
+
+const currentView = ref('timeline')
+
+function handleNavigate(view) {
+  if (view === 'new') {
+    currentView.value = 'new-memory'
+  } else if (view === 'timeline') {
+    currentView.value = 'timeline'
+  }
+}
 </script>
 
 <style>

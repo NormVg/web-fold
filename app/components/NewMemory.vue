@@ -1,779 +1,446 @@
 <template>
-  <div class="new-memory-container">
-    <div class="noise-overlay"></div>
-
+  <div class="new-memory-page">
     <!-- Header -->
-    <header class="header entrance-anim" style="--delay: 0.1s">
-      <button class="close-btn" @click="handleClose">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <header class="header">
+      <button class="close-btn" @click="$emit('navigate', 'timeline')">
+        <svg width="24" height="24" viewBox="0 0 49 49" fill="none">
+          <circle cx="24.27" cy="24.27" r="24.27" fill="#810100" fill-opacity="0.2" />
+          <path
+            d="M24 11.8125C21.5895 11.8125 19.2332 12.5273 17.229 13.8665C15.2248 15.2056 13.6627 17.1091 12.7402 19.336C11.8178 21.563 11.5764 24.0135 12.0467 26.3777C12.5169 28.7418 13.6777 30.9134 15.3821 32.6179C17.0866 34.3223 19.2582 35.4831 21.6223 35.9533C23.9865 36.4236 26.437 36.1822 28.664 35.2598C30.8909 34.3373 32.7944 32.7752 34.1335 30.771C35.4727 28.7668 36.1875 26.4105 36.1875 24C36.1841 20.7687 34.899 17.6708 32.6141 15.3859C30.3292 13.101 27.2313 11.8159 24 11.8125ZM28.4133 27.0867C28.5004 27.1738 28.5695 27.2772 28.6166 27.391C28.6638 27.5048 28.688 27.6268 28.688 27.75C28.688 27.8732 28.6638 27.9952 28.6166 28.109C28.5695 28.2228 28.5004 28.3262 28.4133 28.4133C28.3262 28.5004 28.2228 28.5695 28.109 28.6166C27.9952 28.6638 27.8732 28.688 27.75 28.688C27.6268 28.688 27.5048 28.6638 27.391 28.6166C27.2772 28.5695 27.1738 28.5004 27.0867 28.4133L24 25.3254L20.9133 28.4133C20.8262 28.5004 20.7228 28.5695 20.609 28.6166C20.4952 28.6638 20.3732 28.688 20.25 28.688C20.1268 28.688 20.0048 28.6638 19.891 28.6166C19.7772 28.5695 19.6738 28.5004 19.5867 28.4133C19.4996 28.3262 19.4305 28.2228 19.3834 28.109C19.3362 27.9952 19.312 27.8732 19.312 27.75C19.312 27.6268 19.3362 27.5048 19.3834 27.391C19.4305 27.2772 19.4996 27.1738 19.5867 27.0867L22.6746 24L19.5867 20.9133C19.4108 20.7374 19.312 20.4988 19.312 20.25C19.312 20.0012 19.4108 19.7626 19.5867 19.5867C19.7626 19.4108 20.0012 19.312 20.25 19.312C20.4988 19.312 20.7374 19.4108 20.9133 19.5867L24 22.6746L27.0867 19.5867C27.1738 19.4996 27.2772 19.4305 27.391 19.3834C27.5048 19.3362 27.6268 19.312 27.75 19.312C27.8732 19.312 27.9952 19.3362 28.109 19.3834C28.2228 19.4305 28.3262 19.4996 28.4133 19.5867C28.5004 19.6738 28.5695 19.7772 28.6166 19.891C28.6638 20.0048 28.688 20.1268 28.688 20.25C28.688 20.3732 28.6638 20.4952 28.6166 20.609C28.5695 20.7228 28.5004 20.8262 28.4133 20.9133L25.3254 24L28.4133 27.0867Z"
+            fill="#810100" />
         </svg>
       </button>
-      <h1 class="header-title">New Memory</h1>
-      <div class="header-spacer"></div>
+      <h1 class="page-title">New Memory</h1>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Hero Section -->
-      <section class="hero-section entrance-anim" style="--delay: 0.2s">
-        <h2 class="tagline">Unfold your mind.</h2>
-        <p class="subtitle">Capture your thoughts, feelings, and moments that matter</p>
-      </section>
+    <!-- Content -->
+    <main class="content">
+      <!-- Left Column: Input Card -->
+      <div class="input-section">
+        <div class="input-card">
+          <textarea class="memory-input" placeholder="How are you feeling right now?&#10;Write it down"
+            v-model="memoryText"></textarea>
 
-      <!-- Two Column Layout -->
-      <div class="content-grid">
-        <!-- Left Column: Recording -->
-        <div class="recording-column entrance-anim" style="--delay: 0.3s">
-          <div class="recorder-card hover-lift">
-            <div class="timer" :class="{ 'pulsing': isRecording }">{{ formattedTime }}</div>
-
-            <!-- Waveform Visualization -->
-            <div class="waveform">
-              <div
-                v-for="(bar, index) in waveformBars"
-                :key="index"
-                class="waveform-bar"
-                :style="{
-                  height: bar + 'px',
-                  animationDelay: (index * 0.05) + 's',
-                  transform: isRecording ? 'scaleY(1.5)' : 'scaleY(1)'
-                }"
-                :class="{ 'animating': isRecording }"
-              ></div>
-            </div>
-
-            <!-- Recording Controls -->
-            <div class="controls">
-              <button class="control-btn secondary" @click="resetRecording" title="Reset">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <div class="action-bar">
+            <div class="action-group-left">
+              <button class="action-btn">
+                <!-- Image Icon -->
+                <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                  <circle cx="20" cy="20" r="18.5" fill="#810100" fill-opacity="0.2" />
+                  <path
+                    d="M26.297 12.574H10.5739C10.1948 12.574 9.8312 12.725 9.5632 12.993C9.2951 13.261 9.1445 13.624 9.1445 14.004V26.868C9.1445 27.247 9.2951 27.611 9.5632 27.879C9.8312 28.147 10.1948 28.297 10.5739 28.297H26.297C26.6761 28.297 27.0397 28.147 27.3078 27.879C27.5758 27.611 27.7264 27.247 27.7264 26.868V14.004C27.7264 13.624 27.5758 13.261 27.3078 12.993C27.0397 12.725 26.6761 12.574 26.297 12.574ZM20.9369 16.862C21.1489 16.862 21.3562 16.925 21.5325 17.043C21.7088 17.161 21.8462 17.328 21.9273 17.524C22.0084 17.72 22.0297 17.936 21.9883 18.144C21.9469 18.351 21.8448 18.542 21.6949 18.692C21.545 18.842 21.354 18.944 21.146 18.986C20.9381 19.027 20.7225 19.006 20.5266 18.925C20.3307 18.844 20.1633 18.706 20.0455 18.53C19.9277 18.354 19.8648 18.146 19.8648 17.934C19.8648 17.65 19.9778 17.377 20.1788 17.176C20.3799 16.975 20.6526 16.862 20.9369 16.862ZM26.297 26.868H10.5739V23.356L14.7137 19.215C14.7801 19.149 14.8589 19.096 14.9457 19.06C15.0325 19.024 15.1255 19.006 15.2194 19.006C15.3133 19.006 15.4063 19.024 15.4931 19.06C15.5798 19.096 15.6586 19.149 15.725 19.215L21.7409 25.23C21.875 25.364 22.0569 25.439 22.2465 25.439C22.4362 25.439 22.6181 25.364 22.7522 25.23C22.8863 25.095 22.9616 24.914 22.9616 24.724C22.9616 24.534 22.8863 24.352 22.7522 24.218L21.1745 22.641L22.4556 21.36C22.5896 21.226 22.7713 21.15 22.9608 21.15C23.1502 21.15 23.332 21.226 23.466 21.36L26.297 24.194V26.868Z"
+                    fill="#810100" />
                 </svg>
               </button>
-
-              <button
-                class="control-btn primary"
-                @click="toggleRecording"
-                :class="{ 'recording': isRecording }"
-              >
-                <div class="record-ring" v-if="isRecording"></div>
-                <div class="record-icon" :class="{ 'recording': isRecording }"></div>
-              </button>
-
-              <button class="control-btn secondary" @click="confirmRecording" title="Confirm">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <button class="action-btn">
+                <!-- Video Icon -->
+                <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                  <circle cx="20" cy="20" r="18.5" fill="#810100" fill-opacity="0.2" />
+                  <g clip-path="url(#clip0_videocam)">
+                    <path
+                      d="M25.653 14.933V24.939C25.653 25.318 25.502 25.682 25.234 25.95C24.966 26.218 24.603 26.368 24.223 26.368H11.3591C10.98 26.368 10.6164 26.218 10.3483 25.95C10.0803 25.682 9.9297 25.318 9.9297 24.939V14.933C9.9297 14.554 10.0803 14.191 10.3483 13.923C10.6164 13.655 10.98 13.504 11.3591 13.504H24.223C24.603 13.504 24.966 13.655 25.234 13.923C25.502 14.191 25.653 14.554 25.653 14.933ZM30.834 14.956C30.733 14.931 30.629 14.928 30.526 14.947C30.424 14.965 30.327 15.006 30.242 15.065L27.241 17.065C27.192 17.097 27.152 17.142 27.124 17.194C27.097 17.246 27.082 17.303 27.082 17.362V22.51C27.082 22.569 27.097 22.627 27.124 22.679C27.152 22.73 27.192 22.775 27.241 22.807L30.259 24.819C30.372 24.895 30.504 24.936 30.64 24.939C30.776 24.942 30.909 24.906 31.025 24.836C31.133 24.768 31.221 24.673 31.281 24.561C31.342 24.449 31.372 24.323 31.37 24.196V15.648C31.37 15.489 31.318 15.335 31.221 15.21C31.124 15.085 30.988 14.995 30.834 14.956Z"
+                      fill="#810100" />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_videocam">
+                      <rect width="21.44" height="21.44" fill="white" transform="translate(9.93 12.5)" />
+                    </clipPath>
+                  </defs>
                 </svg>
               </button>
-            </div>
-
-            <p class="recording-hint">
-              <span v-if="!isRecording">Click the button to start recording</span>
-              <span v-else class="recording-text">Recording...</span>
-            </p>
-          </div>
-        </div>
-
-        <!-- Right Column: Mood & Caption -->
-        <div class="details-column">
-          <!-- Mood Section -->
-          <div class="mood-card hover-lift entrance-anim" style="--delay: 0.4s">
-            <h3 class="card-title">How you feeling right now?</h3>
-            <div class="mood-options">
-              <button
-                v-for="mood in moods"
-                :key="mood.id"
-                class="mood-btn"
-                :class="{ 'selected': selectedMood === mood.id }"
-                @click="selectedMood = mood.id"
-              >
-                <span class="mood-emoji">{{ mood.emoji }}</span>
-                <span class="mood-label">{{ mood.label }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Caption Section -->
-          <div class="caption-card hover-lift entrance-anim" style="--delay: 0.5s">
-            <h3 class="card-title">Caption this?</h3>
-            <div class="caption-input-wrapper">
-              <textarea
-                v-model="caption"
-                class="caption-input"
-                placeholder="Add a title or description for your memory..."
-                rows="3"
-              ></textarea>
-              <button class="add-btn" title="Add more details">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <button class="action-btn">
+                <!-- Mic Icon -->
+                <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                  <circle cx="20" cy="20" r="18.5" fill="#810100" fill-opacity="0.2" />
+                  <g clip-path="url(#clip1_mic)">
+                    <path
+                      d="M15.648 19.935V14.218C15.648 13.081 16.1 11.99 16.904 11.186C17.708 10.381 18.799 9.93 19.936 9.93C21.073 9.93 22.164 10.381 22.968 11.186C23.772 11.99 24.224 13.081 24.224 14.218V19.935C24.224 21.073 23.772 22.163 22.968 22.967C22.164 23.772 21.073 24.223 19.936 24.223C18.799 24.223 17.708 23.772 16.904 22.967C16.1 22.163 15.648 21.073 15.648 19.935ZM27.083 19.935C27.083 19.746 27.008 19.564 26.873 19.43C26.739 19.296 26.558 19.221 26.368 19.221C26.179 19.221 25.997 19.296 25.863 19.43C25.729 19.564 25.653 19.746 25.653 19.935C25.653 21.452 25.051 22.906 23.979 23.978C22.907 25.05 21.452 25.653 19.936 25.653C18.42 25.653 16.965 25.05 15.893 23.978C14.821 22.906 14.218 21.452 14.218 19.935C14.218 19.746 14.143 19.564 14.009 19.43C13.875 19.296 13.693 19.221 13.504 19.221C13.314 19.221 13.132 19.296 12.998 19.43C12.864 19.564 12.789 19.746 12.789 19.935C12.791 21.706 13.45 23.414 14.638 24.727C15.826 26.041 17.459 26.867 19.221 27.046V29.941C19.221 30.13 19.297 30.312 19.431 30.446C19.565 30.58 19.746 30.656 19.936 30.656C20.125 30.656 20.307 30.58 20.441 30.446C20.575 30.312 20.651 30.13 20.651 29.941V27.046C22.413 26.867 24.046 26.041 25.234 24.727C26.422 23.414 27.081 21.706 27.083 19.935Z"
+                      fill="#810100" />
+                  </g>
+                  <defs>
+                    <clipPath id="clip1_mic">
+                      <rect width="21.44" height="21.44" fill="white" transform="translate(9.28 9.28)" />
+                    </clipPath>
+                  </defs>
                 </svg>
               </button>
             </div>
-            <p class="caption-hint">thinking....</p>
-          </div>
-
-          <!-- Tags Section -->
-          <div class="tags-card hover-lift entrance-anim" style="--delay: 0.6s">
-            <h3 class="card-title">Add tags</h3>
-            <div class="tags-wrapper">
-              <span
-                v-for="(tag, index) in suggestedTags"
-                :key="tag"
-                class="tag"
-                @click="toggleTag(tag)"
-                :class="{ 'selected': selectedTags.includes(tag) }"
-                :style="{ animationDelay: (0.7 + index * 0.05) + 's' }"
-              >
-                {{ tag }}
-              </span>
+            <div class="action-group-right">
+              <button class="action-btn">
+                <!-- Location Icon -->
+                <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                  <circle cx="20" cy="20" r="18.5" fill="#810100" fill-opacity="0.2" />
+                  <path
+                    d="M19.933 9.93C17.849 9.932 15.851 10.761 14.377 12.235C12.904 13.708 12.075 15.706 12.072 17.79C12.072 20.595 13.368 23.568 15.824 26.388C16.927 27.663 18.169 28.81 19.527 29.809C19.647 29.894 19.79 29.939 19.937 29.939C20.083 29.939 20.226 29.894 20.347 29.809C21.702 28.81 22.941 27.662 24.042 26.388C26.494 23.568 27.794 20.595 27.794 17.79C27.791 15.706 26.963 13.708 25.489 12.235C24.015 10.761 22.017 9.932 19.933 9.93ZM22.792 18.505H20.648V20.649C20.648 20.838 20.572 21.02 20.438 21.154C20.304 21.288 20.123 21.364 19.933 21.364C19.744 21.364 19.562 21.288 19.428 21.154C19.294 21.02 19.218 20.838 19.218 20.649V18.505H17.075C16.885 18.505 16.703 18.43 16.569 18.296C16.435 18.162 16.36 17.98 16.36 17.79C16.36 17.601 16.435 17.419 16.569 17.285C16.703 17.151 16.885 17.076 17.075 17.076H19.218V14.932C19.218 14.742 19.294 14.561 19.428 14.427C19.562 14.293 19.744 14.217 19.933 14.217C20.123 14.217 20.304 14.293 20.438 14.427C20.572 14.561 20.648 14.742 20.648 14.932V17.076H22.792C22.981 17.076 23.163 17.151 23.297 17.285C23.431 17.419 23.506 17.601 23.506 17.79C23.506 17.98 23.431 18.162 23.297 18.296C23.163 18.43 22.981 18.505 22.792 18.505Z"
+                    fill="#810100" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Submit Button -->
-      <div class="submit-section entrance-anim" style="--delay: 0.8s">
-        <button
-          class="fold-btn"
-          @click="handleSubmit"
-          :class="{ 'submitting': isSubmitting, 'success': isSuccess }"
-        >
-          <span v-if="!isSubmitting && !isSuccess">Fold it</span>
-          <span v-if="isSubmitting">Folding...</span>
-          <span v-if="isSuccess">Folded!</span>
+      <!-- Right Column: Mood Selector & Footer -->
+      <div class="context-section">
+        <!-- Mood Selector -->
+        <div class="mood-selector">
+          <h2 class="mood-title">How you feeling right now?</h2>
+          <div class="mood-options">
+            <button v-for="(mood, index) in moods" :key="index" class="mood-btn"
+              :class="{ active: selectedMood === mood.name }" :style="{ backgroundColor: mood.color }"
+              @click="selectedMood = mood.name">
+              <div class="mood-icon" v-html="mood.icon"></div>
+              <span class="mood-label">{{ mood.name }}</span>
+            </button>
+          </div>
+        </div>
 
-          <svg v-if="!isSubmitting && !isSuccess" width="20" height="20" viewBox="0 0 24 24" fill="none" class="arrow-icon">
-            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-
-          <svg v-if="isSuccess" width="20" height="20" viewBox="0 0 24 24" fill="none" class="check-icon">
-            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+        <!-- Footer (Fold it) -->
+        <footer class="footer">
+          <button class="fold-btn" @click="saveMemory">
+            Fold it
+          </button>
+        </footer>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref } from 'vue'
 
-// Recording state
-const isRecording = ref(false)
-const elapsedTime = ref(0)
-const startTime = ref(0)
-let recordingInterval = null
+const emit = defineEmits(['navigate'])
+const memoryText = ref('')
+const selectedMood = ref('Normal')
 
-// Submission state
-const isSubmitting = ref(false)
-const isSuccess = ref(false)
-
-// Mood state
-const selectedMood = ref('v-happy')
 const moods = [
-  { id: 'v-sad', emoji: '😢', label: 'V. Sad' },
-  { id: 'sad', emoji: '😔', label: 'Sad' },
-  { id: 'normal', emoji: '😐', label: 'Normal' },
-  { id: 'happy', emoji: '🙂', label: 'Happy' },
-  { id: 'v-happy', emoji: '😄', label: 'V. Happy' }
+  {
+    name: 'V. Sad',
+    color: '#DCBCBC',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#181717" stroke-width="1.5"/><path d="M8 12C8 12 9 13 10 13C11 13 12 12 12 12M12 12C12 12 13 13 14 13C15 13 16 12 16 12" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/><path d="M8 16C8 16 9.5 17 12 17C14.5 17 16 16 16 16" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/><path d="M9 9H9.01M15 9H15.01" stroke="#181717" stroke-width="2" stroke-linecap="round"/></svg>`
+  },
+  {
+    name: 'Sad',
+    color: '#E5D4D4',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#181717" stroke-width="1.5"/><path d="M8 16C8 16 9.5 15 12 15C14.5 15 16 16 16 16" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/><path d="M9 9H9.01M15 9H15.01" stroke="#181717" stroke-width="2" stroke-linecap="round"/></svg>`
+  },
+  {
+    name: 'Normal',
+    color: '#E5E3D4',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#181717" stroke-width="1.5"/><path d="M8 16H16" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/><path d="M9 9H9.01M15 9H15.01" stroke="#181717" stroke-width="2" stroke-linecap="round"/></svg>`
+  },
+  {
+    name: 'Happy',
+    color: '#D4E5D5',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#181717" stroke-width="1.5"/><path d="M8 15C8 15 9.5 17 12 17C14.5 17 16 15 16 15" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/><path d="M9 9H9.01M15 9H15.01" stroke="#181717" stroke-width="2" stroke-linecap="round"/></svg>`
+  },
+  {
+    name: 'V. Happy',
+    color: '#BCDCBE',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#181717" stroke-width="1.5"/><path d="M8 15C8 15 9.5 17 12 17C14.5 17 16 15 16 15" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/><path d="M7 9C7 9 8 10 9 10C10 10 11 9 11 9M13 9C13 9 14 10 15 10C16 10 17 9 17 9" stroke="#181717" stroke-width="1.5" stroke-linecap="round"/></svg>`
+  }
 ]
 
-// Caption state
-const caption = ref('')
-
-// Tags state
-const suggestedTags = ['#reflection', '#gratitude', '#goals', '#memories', '#daily', '#ideas']
-const selectedTags = ref([])
-
-// Waveform visualization
-const waveformBars = ref([12, 24, 18, 32, 28, 40, 35, 28, 40, 32, 24, 36, 28])
-
-const formattedTime = computed(() => {
-  // Calculate seconds from milliseconds
-  const totalSeconds = Math.floor(elapsedTime.value / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-
-  // Optional: Add milliseconds for "high-tech" feel if desired,
-  // but standard 00:00 is usually best for voice memos.
-  // Sticking to 00:00 as per design.
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-})
-
-function toggleRecording() {
-  if (isRecording.value) {
-    // Pause/Stop
-    isRecording.value = false
-    clearInterval(recordingInterval)
-  } else {
-    // Start/Resume
-    isRecording.value = true
-    startTime.value = Date.now() - elapsedTime.value
-
-    recordingInterval = setInterval(() => {
-      elapsedTime.value = Date.now() - startTime.value
-
-      // More dynamic waveform
-      waveformBars.value = waveformBars.value.map(val => {
-        const change = Math.floor(Math.random() * 20) - 10
-        return Math.max(10, Math.min(60, val + change))
-      })
-    }, 50) // Faster updates for smoother waveform/timer
+function saveMemory() {
+  // Logic to save memory would go here
+  if (memoryText.value.trim()) {
+    emit('navigate', 'timeline')
   }
 }
-
-function resetRecording() {
-  isRecording.value = false
-  elapsedTime.value = 0
-  clearInterval(recordingInterval)
-  waveformBars.value = [12, 24, 18, 32, 28, 40, 35, 28, 40, 32, 24, 36, 28]
-}
-
-function confirmRecording() {
-  isRecording.value = false
-  clearInterval(recordingInterval)
-}
-
-function toggleTag(tag) {
-  const index = selectedTags.value.indexOf(tag)
-  if (index > -1) {
-    selectedTags.value.splice(index, 1)
-  } else {
-    selectedTags.value.push(tag)
-  }
-}
-
-function handleClose() {
-  console.log('Close clicked')
-}
-
-function handleSubmit() {
-  if (isSubmitting.value || isSuccess.value) return
-
-  isSubmitting.value = true
-
-  // Simulate API call
-  setTimeout(() => {
-    isSubmitting.value = false
-    isSuccess.value = true
-
-    // Reset success state after delay
-    setTimeout(() => {
-      isSuccess.value = false
-    }, 2000)
-  }, 1500)
-}
-
-onUnmounted(() => {
-  clearInterval(recordingInterval)
-})
 </script>
 
 <style scoped>
-/* Animations */
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 46, 46, 0.4); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(139, 46, 46, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 46, 46, 0); }
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0px); }
-}
-
-@keyframes pop {
-  0% { transform: scale(0.95); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
-.entrance-anim {
-  opacity: 0;
-  animation: slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  animation-delay: var(--delay);
-}
-
-.hover-lift {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-}
-
-.new-memory-container {
+.new-memory-page {
   min-height: 100vh;
-  background: #f5f3ef;
-  position: relative;
-  overflow-x: hidden;
-}
-
-/* Noise Texture */
-.noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.03;
-  pointer-events: none;
-  z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background: #EDEADC;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0 auto;
+  transition: all 0.3s ease;
 }
 
 /* Header */
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 20px 48px;
-  background: rgba(245, 243, 239, 0.85);
-  backdrop-filter: blur(10px);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  position: relative;
+  height: 48px;
 }
 
 .close-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #8b2e2e;
+  background: none;
   border: none;
-  color: white;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 0;
+  transition: transform 0.2s ease;
+  position: absolute;
+  left: 0;
+  z-index: 10;
 }
 
 .close-btn:hover {
-  transform: rotate(90deg) scale(1.1);
-  background: #6b2323;
+  transform: scale(1.1);
 }
 
-.header-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-  opacity: 0.9;
-}
-
-.header-spacer { width: 40px; }
-
-/* Main Content */
-.main-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 48px 80px;
-  position: relative;
-  z-index: 1;
-}
-
-/* Hero Section */
-.hero-section {
+.page-title {
+  flex: 1;
   text-align: center;
-  margin-bottom: 48px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #181717;
+  margin: 0;
 }
 
-.tagline {
-  font-size: 48px;
-  font-weight: 800;
-  color: #1a1a1a;
-  margin-bottom: 16px;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.subtitle {
-  font-size: 18px;
-  color: #666;
-  font-weight: 400;
-}
-
-/* Content Grid */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 32px;
-  margin-bottom: 48px;
-}
-
-/* Cards Base Style */
-.recorder-card,
-.mood-card,
-.caption-card,
-.tags-card {
-  background: white;
-  border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0,0,0,0.02);
-}
-
-/* Recording Column */
-.recording-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.recorder-card {
+.content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 420px;
-  background: linear-gradient(180deg, #e8e4dc 0%, #e0dbce 100%);
-}
-
-.timer {
-  font-size: 80px;
-  font-weight: 700;
-  color: #1a1a1a;
-  letter-spacing: -0.04em;
-  margin-bottom: 32px;
-  font-variant-numeric: tabular-nums;
-  transition: color 0.3s ease;
-}
-
-.timer.pulsing {
-  color: #8b2e2e;
-}
-
-/* Waveform */
-.waveform {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 80px;
-  margin-bottom: 40px;
-}
-
-.waveform-bar {
-  width: 6px;
-  background: #1a1a1a;
-  border-radius: 3px;
-  transition: all 0.1s ease;
-  min-height: 4px;
-}
-
-.waveform-bar.animating {
-  background: #8b2e2e;
-}
-
-/* Controls */
-.controls {
-  display: flex;
-  align-items: center;
   gap: 24px;
-  margin-bottom: 24px;
 }
 
-.control-btn {
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-}
-
-.control-btn:active {
-  transform: scale(0.95);
-}
-
-.control-btn.secondary {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  color: #1a1a1a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(4px);
-}
-
-.control-btn.secondary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  color: #8b2e2e;
-}
-
-.control-btn.primary {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: #1a1a1a;
-  position: relative;
-}
-
-.control-btn.primary.recording {
-  animation: pulse 1.5s infinite;
-}
-
-.record-icon {
-  width: 32px;
-  height: 32px;
-  background: #f5f3ef;
-  border-radius: 50%;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 2;
-}
-
-.record-icon.recording {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: #ff4747;
-}
-
-.recording-hint {
-  font-size: 14px;
-  color: #888;
-  height: 20px;
-}
-
-.recording-text {
-  color: #8b2e2e;
-  font-weight: 600;
-  animation: float 2s ease-in-out infinite;
-  display: inline-block;
-}
-
-/* Details Column */
-.details-column {
+/* Input Card */
+.input-card {
+  background: rgba(0, 0, 0, 0.05);
+  /* Slight dark overlay as seen in SVG */
+  border-radius: 24px;
+  padding: 24px;
+  height: 400px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  position: relative;
+  transition: all 0.3s ease;
 }
 
-/* Mood Options */
-.mood-options {
+.input-card:focus-within {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.memory-input {
+  width: 100%;
+  flex: 1;
+  background: transparent;
+  border: none;
+  resize: none;
+  font-size: 20px;
+  font-weight: 500;
+  color: #181717;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.memory-input::placeholder {
+  color: rgba(24, 23, 23, 0.3);
+  font-weight: 700;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.action-group-left {
   display: flex;
   gap: 12px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Mood Selector */
+.mood-selector {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  padding: 20px;
+}
+
+.mood-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #181717;
+  margin: 0 0 16px 0;
+}
+
+.mood-options {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .mood-btn {
   flex: 1;
+  border: 1px solid #181717;
+  border-radius: 12px;
+  padding: 12px 4px;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 16px 8px;
-  background: #f9f9f9;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.mood-btn.active {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-width: 2px;
 }
 
 .mood-btn:hover {
-  transform: translateY(-5px) scale(1.05);
-  background: white;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-}
-
-.mood-btn.selected {
-  background: #e8f5e8;
-  border-color: #4a9c4a;
-  transform: scale(1.05);
-}
-
-.mood-btn.selected:first-child,
-.mood-btn.selected:nth-child(2) {
-  background: #fce8e8;
-  border-color: #c44a4a;
-}
-
-.mood-emoji {
-  font-size: 32px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-  transition: transform 0.3s ease;
-}
-
-.mood-btn:hover .mood-emoji {
-  transform: scale(1.2) rotate(5deg);
+  transform: translateY(-2px);
 }
 
 .mood-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #666;
+  color: #181717;
 }
 
-/* Caption Card */
-.caption-input-wrapper {
-  position: relative;
-}
-
-.caption-input {
-  width: 100%;
-  padding: 20px;
-  padding-right: 60px;
-  background: #f9f9f9;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  font-size: 16px;
-  font-family: inherit;
-  resize: none;
-  color: #1a1a1a;
-  transition: all 0.3s ease;
-  line-height: 1.5;
-}
-
-.caption-input:focus {
-  outline: none;
-  background: white;
-  border-color: #8b2e2e;
-  box-shadow: 0 0 0 4px rgba(139, 46, 46, 0.1);
-}
-
-.add-btn {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #8b2e2e;
-  border: none;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.add-btn:hover {
-  transform: scale(1.1) rotate(90deg);
-  background: #6b2323;
-}
-
-/* Tags Card */
-.tags-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.tag {
-  padding: 10px 20px;
-  background: #f5f5f5;
-  border-radius: 100px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border: 1px solid transparent;
-}
-
-.tag:hover {
-  background: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  border-color: #eee;
-  color: #1a1a1a;
-}
-
-.tag.selected {
-  background: #8b2e2e;
-  color: white;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(139, 46, 46, 0.2);
-}
-
-/* Submit Section */
-.submit-section {
-  display: flex;
-  justify-content: center;
-  perspective: 1000px;
+/* Footer & Fold Button (Default Mobile) */
+.footer {
+  margin-top: auto;
+  padding-top: 24px;
 }
 
 .fold-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 22px 72px;
-  background: #8b2e2e;
+  width: 100%;
+  background: #810100;
   color: white;
   border: none;
-  border-radius: 100px;
-  font-size: 18px;
-  font-weight: 600;
+  border-radius: 30px;
+  padding: 16px;
+  font-size: 20px;
+  font-style: italic;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  overflow: hidden;
+  transition: all 0.3s ease;
+  font-family: serif;
+  /* Using serif to match the "Fold it" cursive style */
 }
 
 .fold-btn:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(139, 46, 46, 0.3);
-  background: #7a2626;
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(129, 1, 0, 0.3);
 }
 
-.fold-btn:active {
-  transform: translateY(-1px);
-}
+/* Desktop Responsiveness */
+@media (min-width: 1024px) {
+  .new-memory-page {
+    padding: 40px;
+    max-width: 1200px;
+    justify-content: center;
+  }
 
-.fold-btn.submitting {
-  background: #666;
-  pointer-events: none;
-}
+  .header {
+    margin-bottom: 40px;
+    height: auto;
+    justify-content: center;
+  }
 
-.fold-btn.success {
-  background: #4a9c4a;
-  pointer-events: none;
-}
+  .page-title {
+    font-size: 48px;
+    text-align: center;
+  }
 
-.arrow-icon {
-  transition: transform 0.3s ease;
-}
+  .close-btn {
+    left: 0;
+    width: 48px;
+    height: 48px;
+  }
 
-.fold-btn:hover .arrow-icon {
-  transform: translateX(4px);
-}
+  .close-btn svg {
+    width: 48px;
+    height: 48px;
+  }
 
-.check-icon {
-  animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+  /* Grid Layout for Content */
+  .content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .content-grid { grid-template-columns: 1fr; }
-  .recorder-card { min-height: 360px; }
-  .tagline { font-size: 40px; }
-}
+  /* Left Column */
+  .input-section {
+    height: 100%;
+  }
 
-@media (max-width: 768px) {
-  .header { padding: 16px 24px; }
-  .main-content { padding: 24px 24px 40px; }
-  .tagline { font-size: 32px; }
-  .timer { font-size: 60px; }
-  .mood-options { flex-wrap: wrap; }
-  .mood-btn { flex: 0 0 calc(33.33% - 8px); }
+  .input-card {
+    height: 600px;
+    padding: 40px;
+    border-radius: 32px;
+  }
+
+  .memory-input {
+    font-size: 32px;
+    line-height: 1.6;
+  }
+
+  .action-bar {
+    margin-top: 32px;
+  }
+
+  .action-btn svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Right Column */
+  .context-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .mood-selector {
+    padding: 32px;
+  }
+
+  .mood-title {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+
+  .mood-options {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mood-btn {
+    flex-direction: row;
+    padding: 16px 24px;
+    justify-content: flex-start;
+    gap: 16px;
+    border-radius: 16px;
+  }
+
+  .mood-label {
+    font-size: 16px;
+  }
+
+  .footer {
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .fold-btn {
+    padding: 24px;
+    font-size: 24px;
+    border-radius: 40px;
+  }
 }
 </style>
