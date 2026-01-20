@@ -22,41 +22,45 @@
           <textarea v-if="!isRecording && !audioUrl" class="memory-input"
             placeholder="How are you feeling right now?&#10;Write it down" v-model="memoryText"></textarea>
 
-          <!-- State: Recording -->
-          <div v-else-if="isRecording" class="recording-ui">
+          <!-- Audio Recorder UI -->
+          <div v-if="isRecording || audioUrl" class="recorder-container">
+            <!-- Timer -->
             <div class="timer">{{ formattedTime }}</div>
-            <div class="waveform">
-              <div v-for="(bar, i) in waveform" :key="i" class="bar" :style="{ height: bar + 'px' }"></div>
-            </div>
-            <div class="recording-status">Recording...</div>
-            <button class="stop-btn" @click="stopRecording">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-              </svg>
-              Stop Recording
-            </button>
-          </div>
 
-          <!-- State: Playback Preview -->
-          <div v-else class="playback-ui">
-            <div class="playback-content">
-              <div class="playback-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"
-                    fill="#810100" />
-                  <path
-                    d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
-                    fill="#810100" />
-                </svg>
-              </div>
-              <audio :src="audioUrl" controls class="audio-preview"></audio>
+            <!-- Waveform -->
+            <div class="waveform">
+              <div v-for="(bar, i) in waveform" :key="i" class="bar"
+                :style="{ height: bar + 'px', opacity: isRecording ? 1 : 0.5 }"></div>
             </div>
-            <button class="discard-btn" @click="discardRecording">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-              </svg>
-              Discard
-            </button>
+
+            <!-- Controls -->
+            <div class="recorder-controls">
+              <!-- Reset (Left) -->
+              <button class="control-btn small" @click="discardRecording" title="Reset">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="icon-dark">
+                  <path d="M4 12V9a9 9 0 0113.5-7.3M20 12v3a9 9 0 01-13.5 7.3M4 12H1M20 12h3" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+
+              <!-- Stop/Interaction (Center) -->
+              <button class="control-btn large" @click="toggleRecordingState">
+                <!-- Stop Icon (if recording) -->
+                <div v-if="isRecording" class="inner-stop"></div>
+                <!-- Play Icon (if stopped/preview) -->
+                <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+
+              <!-- Confirm (Right) -->
+              <button class="control-btn small" @click="confirmAudio" title="Save Audio">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="icon-dark">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div class="action-bar">
@@ -265,6 +269,33 @@ function stopWaveformAnimation() {
   waveform.value = new Array(30).fill(10) // Reset
 }
 
+function toggleRecordingState() {
+  if (isRecording.value) {
+    stopRecording()
+  } else {
+    // If already recorded and stopped, clicking center might mean Play?
+    // For now, let's play the audio
+    const audio = new Audio(audioUrl.value)
+    audio.play()
+  }
+}
+
+function confirmAudio() {
+  // If we have a blob, we consider it "saved" to the memory
+  // In a real app this might attach it. here we just clear the UI state but keep the blob?
+  // Or maybe it emits immediately?
+  // Let's assume hitting checkmark is "Done with audio part", effectively hiding the big recorder
+  // but showing a small "Audio Attached" indicator in the main card.
+  // BUT the user request implementation plan was just to have the recorder.
+  // For simplicity, let's keep it visible or just saveMemory immediately?
+  // Let's make it calling saveMemory() if that's the intent of the "Fold it" equivalent?
+  // Or maybe it just keeps the audioUrl and returns to the textarea?
+  // User design has a dedicated Checkmark. This usually means "Confirm this recording".
+  // Let's just minimize audio back to a pill or something?
+  // For now: Just Trigger Save
+  saveMemory()
+}
+
 function saveMemory() {
   // Logic to save memory (text or audio)
   if (memoryText.value.trim() || audioBlob.value) {
@@ -361,69 +392,8 @@ function saveMemory() {
   font-weight: 700;
 }
 
-/* Recording UI */
-.recording-ui {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-}
-
-.timer {
-  font-size: 64px;
-  font-weight: 700;
-  color: #810100;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 2px;
-}
-
-.waveform {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 60px;
-}
-
-.bar {
-  width: 6px;
-  background: #181717;
-  border-radius: 99px;
-  transition: height 0.1s ease;
-  height: 10px;
-}
-
-.recording-status {
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(24, 23, 23, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.stop-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #810100;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 99px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.stop-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(129, 1, 0, 0.2);
-}
-
-/* Playback UI */
-.playback-ui {
+/* Recorder Container */
+.recorder-container {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -433,55 +403,77 @@ function saveMemory() {
   width: 100%;
 }
 
-.playback-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 400px;
+.timer {
+  font-size: 80px;
+  font-weight: 700;
+  color: #181717;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
 }
 
-.playback-icon {
-  width: 80px;
-  height: 80px;
-  background: #FFEAEA;
-  border-radius: 50%;
+.waveform {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 6px;
+  height: 64px;
 }
 
-.playback-icon svg {
-  width: 40px;
-  height: 40px;
-  color: #810100;
+.bar {
+  width: 8px;
+  background: #810100;
+  border-radius: 99px;
+  transition: height 0.1s ease;
+  height: 12px;
 }
 
-.audio-preview {
-  width: 100%;
-}
-
-.discard-btn {
+/* Controls Row */
+.recorder-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: 1px solid rgba(24, 23, 23, 0.2);
-  color: rgba(24, 23, 23, 0.6);
-  padding: 10px 20px;
-  border-radius: 99px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 40px;
 }
 
-.discard-btn:hover {
-  background: #FFF0F0;
-  border-color: #ffcccc;
-  color: #D32F2F;
+.control-btn {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.control-btn:hover {
+  transform: scale(1.1);
+}
+
+.control-btn.small {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #FDFBF7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.control-btn.large {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #181717;
+  color: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.icon-dark {
+  color: #181717;
+}
+
+.inner-stop {
+  width: 32px;
+  height: 32px;
+  background: #FDFBF7;
+  border-radius: 8px;
 }
 
 .action-bar {
