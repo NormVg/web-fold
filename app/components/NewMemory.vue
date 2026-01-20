@@ -18,8 +18,46 @@
       <!-- Left Column: Input Card -->
       <div class="input-section">
         <div class="input-card">
-          <textarea class="memory-input" placeholder="How are you feeling right now?&#10;Write it down"
-            v-model="memoryText"></textarea>
+          <!-- State: Text Input -->
+          <textarea v-if="!isRecording && !audioUrl" class="memory-input"
+            placeholder="How are you feeling right now?&#10;Write it down" v-model="memoryText"></textarea>
+
+          <!-- State: Recording -->
+          <div v-else-if="isRecording" class="recording-ui">
+            <div class="timer">{{ formattedTime }}</div>
+            <div class="waveform">
+              <div v-for="(bar, i) in waveform" :key="i" class="bar" :style="{ height: bar + 'px' }"></div>
+            </div>
+            <div class="recording-status">Recording...</div>
+            <button class="stop-btn" @click="stopRecording">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+              Stop Recording
+            </button>
+          </div>
+
+          <!-- State: Playback Preview -->
+          <div v-else class="playback-ui">
+            <div class="playback-content">
+              <div class="playback-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"
+                    fill="#810100" />
+                  <path
+                    d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                    fill="#810100" />
+                </svg>
+              </div>
+              <audio :src="audioUrl" controls class="audio-preview"></audio>
+            </div>
+            <button class="discard-btn" @click="discardRecording">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+              Discard
+            </button>
+          </div>
 
           <div class="action-bar">
             <div class="action-group-left">
@@ -48,10 +86,10 @@
                   </defs>
                 </svg>
               </button>
-              <button class="action-btn">
+              <button class="action-btn" @click="startRecording" :disabled="isRecording || audioUrl">
                 <!-- Mic Icon -->
                 <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
-                  <circle cx="20" cy="20" r="18.5" fill="#810100" fill-opacity="0.2" />
+                  <circle cx="20" cy="20" r="18.5" fill="#810100" :fill-opacity="isRecording ? '0.8' : '0.2'" />
                   <g clip-path="url(#clip1_mic)">
                     <path
                       d="M15.648 19.935V14.218C15.648 13.081 16.1 11.99 16.904 11.186C17.708 10.381 18.799 9.93 19.936 9.93C21.073 9.93 22.164 10.381 22.968 11.186C23.772 11.99 24.224 13.081 24.224 14.218V19.935C24.224 21.073 23.772 22.163 22.968 22.967C22.164 23.772 21.073 24.223 19.936 24.223C18.799 24.223 17.708 23.772 16.904 22.967C16.1 22.163 15.648 21.073 15.648 19.935ZM27.083 19.935C27.083 19.746 27.008 19.564 26.873 19.43C26.739 19.296 26.558 19.221 26.368 19.221C26.179 19.221 25.997 19.296 25.863 19.43C25.729 19.564 25.653 19.746 25.653 19.935C25.653 21.452 25.051 22.906 23.979 23.978C22.907 25.05 21.452 25.653 19.936 25.653C18.42 25.653 16.965 25.05 15.893 23.978C14.821 22.906 14.218 21.452 14.218 19.935C14.218 19.746 14.143 19.564 14.009 19.43C13.875 19.296 13.693 19.221 13.504 19.221C13.314 19.221 13.132 19.296 12.998 19.43C12.864 19.564 12.789 19.746 12.789 19.935C12.791 21.706 13.45 23.414 14.638 24.727C15.826 26.041 17.459 26.867 19.221 27.046V29.941C19.221 30.13 19.297 30.312 19.431 30.446C19.565 30.58 19.746 30.656 19.936 30.656C20.125 30.656 20.307 30.58 20.441 30.446C20.575 30.312 20.651 30.13 20.651 29.941V27.046C22.413 26.867 24.046 26.041 25.234 24.727C26.422 23.414 27.081 21.706 27.083 19.935Z"
@@ -141,9 +179,95 @@ const moods = [
   }
 ]
 
+// Audio Recording State
+const isRecording = ref(false)
+const recordingTime = ref(0)
+const audioUrl = ref(null)
+const audioBlob = ref(null)
+const waveform = ref(new Array(30).fill(10)) // Visualizer data
+let mediaRecorder = null
+let audioChunks = []
+let timerInterval = null
+let animationInterval = null
+
+const formattedTime = computed(() => {
+  const mins = Math.floor(recordingTime.value / 60)
+  const secs = recordingTime.value % 60
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+})
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream)
+    audioChunks = []
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data)
+    }
+
+    mediaRecorder.onstop = () => {
+      audioBlob.value = new Blob(audioChunks, { type: 'audio/wav' })
+      audioUrl.value = URL.createObjectURL(audioBlob.value)
+      stopTimer()
+      stopWaveformAnimation()
+    }
+
+    mediaRecorder.start()
+    isRecording.value = true
+    startTimer()
+    startWaveformAnimation()
+  } catch (error) {
+    console.error('Error accessing microphone:', error)
+    alert('Could not access microphone. Please ensure permissions are granted.')
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+    isRecording.value = false
+    // Stop tracks to release microphone
+    mediaRecorder.stream.getTracks().forEach(track => track.stop())
+  }
+}
+
+function discardRecording() {
+  audioUrl.value = null
+  audioBlob.value = null
+  recordingTime.value = 0
+  if (isRecording.value) {
+    stopRecording()
+  }
+  isRecording.value = false
+}
+
+function startTimer() {
+  recordingTime.value = 0
+  timerInterval = setInterval(() => {
+    recordingTime.value++
+  }, 1000)
+}
+
+function stopTimer() {
+  clearInterval(timerInterval)
+}
+
+function startWaveformAnimation() {
+  // Simple random visualization matching the Timeline aesthetic
+  animationInterval = setInterval(() => {
+    waveform.value = waveform.value.map(() => Math.max(10, Math.floor(Math.random() * 40)))
+  }, 100)
+}
+
+function stopWaveformAnimation() {
+  clearInterval(animationInterval)
+  waveform.value = new Array(30).fill(10) // Reset
+}
+
 function saveMemory() {
-  // Logic to save memory would go here
-  if (memoryText.value.trim()) {
+  // Logic to save memory (text or audio)
+  if (memoryText.value.trim() || audioBlob.value) {
     emit('navigate', 'timeline')
   }
 }
@@ -235,6 +359,129 @@ function saveMemory() {
 .memory-input::placeholder {
   color: rgba(24, 23, 23, 0.3);
   font-weight: 700;
+}
+
+/* Recording UI */
+.recording-ui {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.timer {
+  font-size: 64px;
+  font-weight: 700;
+  color: #810100;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 60px;
+}
+
+.bar {
+  width: 6px;
+  background: #181717;
+  border-radius: 99px;
+  transition: height 0.1s ease;
+  height: 10px;
+}
+
+.recording-status {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(24, 23, 23, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #810100;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 99px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stop-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(129, 1, 0, 0.2);
+}
+
+/* Playback UI */
+.playback-ui {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+}
+
+.playback-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.playback-icon {
+  width: 80px;
+  height: 80px;
+  background: #FFEAEA;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.playback-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #810100;
+}
+
+.audio-preview {
+  width: 100%;
+}
+
+.discard-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid rgba(24, 23, 23, 0.2);
+  color: rgba(24, 23, 23, 0.6);
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.discard-btn:hover {
+  background: #FFF0F0;
+  border-color: #ffcccc;
+  color: #D32F2F;
 }
 
 .action-bar {
